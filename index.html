@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>پنل املاک — مدیریت و نمایش</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Tahoma, Arial, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+  <header class="bg-white shadow-sm">
+    <div class="max-w-6xl mx-auto p-4 flex items-center justify-center">
+      <h1 class="text-2xl font-bold text-slate-800">سامانه مدیریت املاک</h1>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-4">
+
+    <!-- toolbar: left = filter, right = add -->
+    <div class="flex items-center justify-between gap-4 mb-4">
+      <div>
+        <button id="btnToggleFilter" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md shadow-sm">🔍 فیلتر کردن</button>
+      </div>
+      <div>
+        <button id="btnToggleAdd" class="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-md shadow">➕ افزودن ملک</button>
+      </div>
+    </div>
+
+    <!-- FILTER: پنهان/نمایش -->
+    <section id="filterPanel" class="hidden bg-white rounded-2xl shadow p-4 mb-6">
+      <h2 class="text-lg font-semibold mb-3">فیلتر پیشرفته (می‌تونی هر فیلد رو فیلتر کنی)</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <input id="f_owner" placeholder="مالک (جستجوی متنی)" class="p-2 border rounded" />
+        <input id="f_type" placeholder="نوع ملک (متنی)" class="p-2 border rounded" />
+        <input id="f_phone" placeholder="شماره تماس (متنی)" class="p-2 border rounded" />
+        <input id="f_address" placeholder="آدرس (متنی)" class="p-2 border rounded" />
+        <!-- قیمت کل -->
+        <div class="grid grid-cols-2 gap-2">
+          <input id="f_minPrice" type="number" placeholder="قیمت از (میلیارد)" class="p-2 border rounded" />
+          <input id="f_maxPrice" type="number" placeholder="قیمت تا (میلیارد)" class="p-2 border rounded" />
+        </div>
+        <!-- قیمت متری -->
+        <div class="grid grid-cols-2 gap-2">
+          <input id="f_minPricePerMeter" type="number" placeholder="قیمت متری از" class="p-2 border rounded" />
+          <input id="f_maxPricePerMeter" type="number" placeholder="قیمت متری تا" class="p-2 border rounded" />
+        </div>
+
+        <!-- متراژ -->
+        <div class="grid grid-cols-2 gap-2">
+          <input id="f_minArea" type="number" placeholder="متراژ از (متر)" class="p-2 border rounded" />
+          <input id="f_maxArea" type="number" placeholder="متراژ تا (متر)" class="p-2 border rounded" />
+        </div>
+
+        <!-- سال ساخت -->
+        <div class="grid grid-cols-2 gap-2">
+          <input id="f_minYear" type="number" placeholder="سال ساخت از (مثلا 1390)" class="p-2 border rounded" />
+          <input id="f_maxYear" type="number" placeholder="سال ساخت تا" class="p-2 border rounded" />
+        </div>
+
+        <!-- عددی ساده -->
+        <input id="f_bedrooms" type="number" placeholder="تعداد خواب (دقیق)" class="p-2 border rounded" />
+        <input id="f_floors" type="number" placeholder="طبقه (دقیق)" class="p-2 border rounded" />
+        <input id="f_units" type="number" placeholder="تعداد واحد (دقیق)" class="p-2 border rounded" />
+      </div>
+
+      <!-- فیلتر تیک‌ها -->
+      <div class="mt-3 flex flex-wrap gap-3 items-center">
+        <label class="inline-flex items-center gap-2"><input id="f_openKitchen" type="checkbox" /> اوپن آشپزخانه</label>
+        <label class="inline-flex items-center gap-2"><input id="f_airConditioner" type="checkbox" /> کولر</label>
+        <label class="inline-flex items-center gap-2"><input id="f_fireplace" type="checkbox" /> شومینه</label>
+        <label class="inline-flex items-center gap-2"><input id="f_parking" type="checkbox" /> پارکینگ</label>
+        <label class="inline-flex items-center gap-2"><input id="f_storage" type="checkbox" /> انباری</label>
+        <label class="inline-flex items-center gap-2"><input id="f_balcony" type="checkbox" /> بالکن</label>
+      </div>
+
+      <!-- اعمال/پاک کردن -->
+      <div class="mt-4 flex gap-2 justify-start">
+        <button id="btnApplyFilter" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded">اعمال فیلتر</button>
+        <button id="btnClearFilter" class="bg-rose-100 text-rose-600 px-4 py-2 rounded">پاک کردن فیلتر</button>
+      </div>
+    </section>
+
+    <!-- ADD FORM: پنهان/نمایش -->
+    <section id="addPanel" class="hidden bg-white rounded-2xl shadow p-4 mb-6">
+      <h2 class="text-lg font-semibold mb-3">افزودن / ویرایش ملک</h2>
+
+      <form id="propertyForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input id="owner" placeholder="مالک" class="p-2 border rounded" />
+        <input id="type" placeholder="نوع ملک" class="p-2 border rounded" />
+        <input id="phone" placeholder="شماره تماس" class="p-2 border rounded" />
+        <input id="address" placeholder="آدرس محل" class="p-2 border rounded" />
+        <input id="priceTotal" type="number" placeholder="قیمت کل و ودیعه (میلیارد)" class="p-2 border rounded" />
+        <input id="pricePerMeter" type="number" placeholder="قیمت متری / اجاره" class="p-2 border rounded" />
+        <input id="floors" type="number" placeholder="طبقه" class="p-2 border rounded" />
+        <input id="area" type="number" placeholder="زیر بنا (متر)" class="p-2 border rounded" />
+        <input id="bedrooms" type="number" placeholder="تعداد خواب" class="p-2 border rounded" />
+        <input id="bathroom" placeholder="سرویس بهداشتی" class="p-2 border rounded" />
+        <input id="flooring" placeholder="کف پوش" class="p-2 border rounded" />
+        <input id="units" type="number" placeholder="تعداد واحد" class="p-2 border rounded" />
+        <input id="age" type="number" placeholder="سن بنا (سال)" class="p-2 border rounded" />
+        <input id="image" placeholder="لینک عکس (اختیاری)" class="p-2 border rounded" />
+        <textarea id="description" placeholder="توضیحات" class="p-2 border rounded col-span-full"></textarea>
+
+        <!-- checkboxes -->
+        <div class="col-span-full flex flex-wrap gap-3">
+          <label class="inline-flex items-center gap-2"><input id="openKitchen" type="checkbox" /> اوپن آشپزخانه</label>
+          <label class="inline-flex items-center gap-2"><input id="airConditioner" type="checkbox" /> کولر</label>
+          <label class="inline-flex items-center gap-2"><input id="fireplace" type="checkbox" /> شومینه</label>
+          <label class="inline-flex items-center gap-2"><input id="parking" type="checkbox" /> پارکینگ</label>
+          <label class="inline-flex items-center gap-2"><input id="storage" type="checkbox" /> انباری</label>
+          <label class="inline-flex items-center gap-2"><input id="balcony" type="checkbox" /> بالکن</label>
+        </div>
+
+        <div class="col-span-full flex gap-2 justify-end">
+          <button type="button" id="btnCancelAdd" class="px-4 py-2 rounded bg-slate-200">انصراف</button>
+          <button type="submit" id="btnSave" class="px-4 py-2 rounded bg-sky-600 text-white">ذخیره ملک</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- results title -->
+    <div class="mb-3 flex items-center justify-between">
+      <div class="text-sm text-slate-600">نتایج (مرتب شده از <b>گران‌ترین</b> به <b>ارزان‌ترین</b>)</div>
+      <div class="text-sm text-slate-500">تعداد: <span id="resultsCount">0</span></div>
+    </div>
+
+    <!-- CARDS GRID -->
+    <section id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></section>
+
+  </main>
+
+<script>
+/* ===== storage & sample data ===== */
+const KEY = 'amlak_online_v3';
+function genId(){ return 'p_' + Math.random().toString(36).slice(2,9); }
+
+const sample = [
+  { id: genId(), owner:'آقای رضایی', type:'آپارتمان', phone:'09121234567', address:'تهران، ونک', priceTotal:5.2, pricePerMeter:41.0, floors:3, area:120, bedrooms:3, bathroom:'دو', flooring:'پارکت', units:1, age:3, image:'https://picsum.photos/seed/11/600/400', description:'آپارتمان نوساز نزدیک مترو', openKitchen:true, airConditioner:true, fireplace:false, parking:true, storage:true, balcony:true },
+  { id: genId(), owner:'خانم حسینی', type:'ویلا', phone:'09129876543', address:'کرج، عظیمیه', priceTotal:12.0, pricePerMeter:37.5, floors:2, area:320, bedrooms:5, bathroom:'سه', flooring:'سرامیک', units:1, age:2, image:'https://picsum.photos/seed/12/600/400', description:'ویلای لوکس با استخر', openKitchen:false, airConditioner:true, fireplace:true, parking:true, storage:true, balcony:true },
+  { id: genId(), owner:'آقای موسوی', type:'سوئیت', phone:'09121112233', address:'شیراز، معالی‌آباد', priceTotal:1.9, pricePerMeter:31.6, floors:1, area:60, bedrooms:1, bathroom:'یک', flooring:'لمینت', units:1, age:8, image:'https://picsum.photos/seed/13/600/400', description:'سوئیت نقلی در مرکز شهر', openKitchen:true, airConditioner:false, fireplace:false, parking:false, storage:false, balcony:false },
+  { id: genId(), owner:'آقای کریمی', type:'آپارتمان', phone:'09123334455', address:'تهران، سعادت‌آباد', priceTotal:4.8, pricePerMeter:40.0, floors:5, area:120, bedrooms:2, bathroom:'دو', flooring:'پارکت', units:2, age:6, image:'https://picsum.photos/seed/14/600/400', description:'آپارتمان شیک با نورگیری عالی', openKitchen:false, airConditioner:true, fireplace:false, parking:true, storage:false, balcony:true }
+];
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if(!raw) { localStorage.setItem(KEY, JSON.stringify(sample)); return sample.slice(); }
+    return JSON.parse(raw);
+  } catch(e) { localStorage.setItem(KEY, JSON.stringify(sample)); return sample.slice(); }
+}
+function save(arr) { localStorage.setItem(KEY, JSON.stringify(arr)); }
+
+let properties = load();
+
+/* ===== UI elements ===== */
+const btnToggleFilter = document.getElementById('btnToggleFilter');
+const btnToggleAdd = document.getElementById('btnToggleAdd');
+const filterPanel = document.getElementById('filterPanel');
+const addPanel = document.getElementById('addPanel');
+const propertyForm = document.getElementById('propertyForm');
+const cardsGrid = document.getElementById('cardsGrid');
+const resultsCount = document.getElementById('resultsCount');
+
+/* ===== toggle behavior ===== */
+btnToggleFilter.addEventListener('click', () => {
+  filterPanel.classList.toggle('hidden');
+  // if showing filter, hide add
+  if(!filterPanel.classList.contains('hidden')) addPanel.classList.add('hidden');
+});
+btnToggleAdd.addEventListener('click', () => {
+  addPanel.classList.toggle('hidden');
+  if(!addPanel.classList.contains('hidden')) filterPanel.classList.add('hidden');
+  // scroll into view when opening
+  if(!addPanel.classList.contains('hidden')) addPanel.scrollIntoView({behavior:'smooth'});
+});
+
+/* ===== render cards (sort desc by priceTotal) ===== */
+function render(list = null) {
+  const data = (list ? list.slice() : properties.slice());
+  data.sort((a,b) => (b.priceTotal || 0) - (a.priceTotal || 0));
+  cardsGrid.innerHTML = '';
+  if(!data.length) {
+    cardsGrid.innerHTML = '<div class="col-span-full p-6 bg-white rounded-xl shadow text-center text-slate-500">هیچ ملکی پیدا نشد.</div>';
+    resultsCount.textContent = '0';
+    return;
+  }
+  resultsCount.textContent = data.length;
+  data.forEach(p => {
+    const card = document.createElement('article');
+    card.className = 'bg-white rounded-2xl shadow overflow-hidden flex flex-col';
+    card.innerHTML = `
+      <div class="h-40 w-full overflow-hidden">
+        <img src="${p.image || 'https://picsum.photos/600/400'}" alt="${escapeHtml(p.owner)}" class="w-full h-full object-cover"/>
+      </div>
+      <div class="p-4 flex-1 flex flex-col">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-bold text-slate-800">${escapeHtml(p.owner)}</h3>
+            <div class="text-sm text-slate-600">${escapeHtml(p.type)} • ${escapeHtml(p.address)}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-orange-600 font-bold text-lg">${p.priceTotal ?? '-' } میلیارد</div>
+            <div class="text-xs text-slate-500">متری: ${p.pricePerMeter ?? '-'}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 text-sm text-slate-600">
+          <div>📐 ${p.area ?? '-'} متر • 🛏 ${p.bedrooms ?? '-'} خواب • 🏢 طبقه ${p.floors ?? '-'}</div>
+          <div>سن بنا: ${p.age ?? '-'} • واحد: ${p.units ?? '-'}</div>
+          <div class="mt-1">کف پوش: ${escapeHtml(p.flooring || '-')} • سرویس: ${escapeHtml(p.bathroom || '-')}</div>
+          <div class="mt-2 text-xs text-slate-500">توضیحات: ${escapeHtml(p.description || '-')}</div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-2 text-xs">
+          ${p.openKitchen ? '<span class="bg-sky-100 text-sky-700 px-2 py-1 rounded-full">اوپن</span>' : ''}
+          ${p.airConditioner ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">کولر</span>' : ''}
+          ${p.fireplace ? '<span class="bg-amber-100 text-amber-700 px-2 py-1 rounded-full">شومینه</span>' : ''}
+          ${p.parking ? '<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded-full">پارکینگ</span>' : ''}
+          ${p.storage ? '<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded-full">انباری</span>' : ''}
+          ${p.balcony ? '<span class="bg-slate-100 text-slate-700 px-2 py-1 rounded-full">بالکن</span>' : ''}
+        </div>
+
+        <div class="mt-auto flex gap-2 pt-4">
+          <button data-id="${p.id}" class="editBtn flex-1 bg-sky-500 text-white py-2 rounded-md hover:bg-sky-600">✏️ ویرایش</button>
+          <button data-id="${p.id}" class="deleteBtn flex-1 bg-rose-100 text-rose-700 py-2 rounded-md hover:bg-rose-200">🗑️ حذف</button>
+        </div>
+      </div>
+    `;
+    cardsGrid.appendChild(card);
+  });
+
+  // attach handlers (by id)
+  document.querySelectorAll('.editBtn').forEach(b => {
+    b.onclick = () => {
+      const id = b.getAttribute('data-id');
+      openEdit(id);
+    };
+  });
+  document.querySelectorAll('.deleteBtn').forEach(b => {
+    b.onclick = () => {
+      const id = b.getAttribute('data-id');
+      onDelete(id);
+    };
+  });
+}
+
+/* ===== escape helper ===== */
+function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* ===== form handling (add / edit) ===== */
+let editingId = null;
+
+function fillFormWith(obj){
+  document.getElementById('owner').value = obj.owner || '';
+  document.getElementById('type').value = obj.type || '';
+  document.getElementById('phone').value = obj.phone || '';
+  document.getElementById('address').value = obj.address || '';
+  document.getElementById('priceTotal').value = obj.priceTotal ?? '';
+  document.getElementById('pricePerMeter').value = obj.pricePerMeter ?? '';
+  document.getElementById('floors').value = obj.floors ?? '';
+  document.getElementById('area').value = obj.area ?? '';
+  document.getElementById('bedrooms').value = obj.bedrooms ?? '';
+  document.getElementById('bathroom').value = obj.bathroom || '';
+  document.getElementById('flooring').value = obj.flooring || '';
+  document.getElementById('units').value = obj.units ?? '';
+  document.getElementById('age').value = obj.age ?? '';
+  document.getElementById('image').value = obj.image || '';
+  document.getElementById('description').value = obj.description || '';
+  document.getElementById('openKitchen').checked = !!obj.openKitchen;
+  document.getElementById('airConditioner').checked = !!obj.airConditioner;
+  document.getElementById('fireplace').checked = !!obj.fireplace;
+  document.getElementById('parking').checked = !!obj.parking;
+  document.getElementById('storage').checked = !!obj.storage;
+  document.getElementById('balcony').checked = !!obj.balcony;
+}
+
+function clearForm(){
+  propertyForm.reset();
+  editingId = null;
+}
+
+document.getElementById('btnCancelAdd').addEventListener('click', () => {
+  clearForm();
+  addPanel.classList.add('hidden');
+});
+
+propertyForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const obj = {
+    owner: document.getElementById('owner').value.trim(),
+    type: document.getElementById('type').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    address: document.getElementById('address').value.trim(),
+    priceTotal: Number(document.getElementById('priceTotal').value) || 0,
+    pricePerMeter: Number(document.getElementById('pricePerMeter').value) || 0,
+    floors: Number(document.getElementById('floors').value) || 0,
+    area: Number(document.getElementById('area').value) || 0,
+    bedrooms: Number(document.getElementById('bedrooms').value) || 0,
+    bathroom: document.getElementById('bathroom').value.trim(),
+    flooring: document.getElementById('flooring').value.trim(),
+    units: Number(document.getElementById('units').value) || 0,
+    age: Number(document.getElementById('age').value) || 0,
+    image: document.getElementById('image').value.trim(),
+    description: document.getElementById('description').value.trim(),
+    openKitchen: document.getElementById('openKitchen').checked,
+    airConditioner: document.getElementById('airConditioner').checked,
+    fireplace: document.getElementById('fireplace').checked,
+    parking: document.getElementById('parking').checked,
+    storage: document.getElementById('storage').checked,
+    balcony: document.getElementById('balcony').checked
+  };
+
+  if(!obj.owner || !obj.address) {
+    alert('لطفاً حداقل مالک و آدرس را وارد کنید.');
+    return;
+  }
+
+  if(editingId) {
+    // update existing by id
+    properties = properties.map(p => p.id === editingId ? ({ ...p, ...obj, id: editingId }) : p);
+    save(properties);
+    editingId = null;
+  } else {
+    // add new
+    properties.push({ id: genId(), ...obj });
+    save(properties);
+  }
+
+  clearForm();
+  render(); // show full sorted list (or current filter can be reapplied if you want)
+  // optionally close add panel:
+  addPanel.classList.add('hidden');
+});
+
+/* ===== edit/delete by id (works regardless of filtered view) ===== */
+function openEdit(id){
+  const p = properties.find(x => x.id === id);
+  if(!p) return alert('ملک پیدا نشد!');
+  editingId = id;
+  fillFormWith(p);
+  addPanel.classList.remove('hidden');
+  addPanel.scrollIntoView({behavior:'smooth'});
+}
+
+function onDelete(id){
+  if(!confirm('آیا از حذف این ملک مطمئنی؟')) return;
+  properties = properties.filter(p => p.id !== id);
+  save(properties);
+  // re-render (respect current filters if any)
+  const evt = new Event('applyFiltersNow'); document.dispatchEvent(evt);
+}
+
+/* ===== filters implementation ===== */
+
+function getFilterValues(){
+  return {
+    owner: (document.getElementById('f_owner')?.value || '').trim().toLowerCase(),
+    type: (document.getElementById('f_type')?.value || '').trim().toLowerCase(),
+    phone: (document.getElementById('f_phone')?.value || '').trim(),
+    address: (document.getElementById('f_address')?.value || '').trim().toLowerCase(),
+    minPrice: Number(document.getElementById('f_minPrice')?.value) || -Infinity,
+    maxPrice: Number(document.getElementById('f_maxPrice')?.value) || Infinity,
+    minPricePerMeter: Number(document.getElementById('f_minPricePerMeter')?.value) || -Infinity,
+    maxPricePerMeter: Number(document.getElementById('f_maxPricePerMeter')?.value) || Infinity,
+    minArea: Number(document.getElementById('f_minArea')?.value) || -Infinity,
+    maxArea: Number(document.getElementById('f_maxArea')?.value) || Infinity,
+    minYear: Number(document.getElementById('f_minYear')?.value) || -Infinity,
+    maxYear: Number(document.getElementById('f_maxYear')?.value) || Infinity,
+    bedrooms: Number(document.getElementById('f_bedrooms')?.value) || null,
+    floors: Number(document.getElementById('f_floors')?.value) || null,
+    units: Number(document.getElementById('f_units')?.value) || null,
+    openKitchen: document.getElementById('f_openKitchen')?.checked || false,
+    airConditioner: document.getElementById('f_airConditioner')?.checked || false,
+    fireplace: document.getElementById('f_fireplace')?.checked || false,
+    parking: document.getElementById('f_parking')?.checked || false,
+    storage: document.getElementById('f_storage')?.checked || false,
+    balcony: document.getElementById('f_balcony')?.checked || false
+  };
+}
+
+function applyFiltersNow(){
+  const f = getFilterValues();
+  let filtered = properties.filter(p => {
+    // text matches (if provided)
+    if(f.owner && !String(p.owner || '').toLowerCase().includes(f.owner)) return false;
+    if(f.type && !String(p.type || '').toLowerCase().includes(f.type)) return false;
+    if(f.phone && !String(p.phone || '').includes(f.phone)) return false;
+    if(f.address && !String(p.address || '').toLowerCase().includes(f.address)) return false;
+
+    // numeric ranges
+    if(!( (p.priceTotal || 0) >= f.minPrice && (p.priceTotal || 0) <= f.maxPrice )) return false;
+    if(!( (p.pricePerMeter || 0) >= f.minPricePerMeter && (p.pricePerMeter || 0) <= f.maxPricePerMeter )) return false;
+    if(!( (p.area || 0) >= f.minArea && (p.area || 0) <= f.maxArea )) return false;
+    if(!( (p.year || p.age || 0) >= f.minYear && ( (p.year || p.age || 0) ) <= f.maxYear )) return false;
+
+    // exact numbers if provided
+    if(f.bedrooms && (p.bedrooms !== f.bedrooms)) return false;
+    if(f.floors && (p.floors !== f.floors)) return false;
+    if(f.units && (p.units !== f.units)) return false;
+
+    // checkboxes (if checked in filter, property must have it)
+    if(f.openKitchen && !p.openKitchen) return false;
+    if(f.airConditioner && !p.airConditioner) return false;
+    if(f.fireplace && !p.fireplace) return false;
+    if(f.parking && !p.parking) return false;
+    if(f.storage && !p.storage) return false;
+    if(f.balcony && !p.balcony) return false;
+
+    return true;
+  });
+
+  render(filtered);
+}
+
+/* bind apply/clear */
+document.getElementById('btnApplyFilter').addEventListener('click', () => {
+  applyFiltersNow();
+});
+document.getElementById('btnClearFilter').addEventListener('click', () => {
+  // reset filter inputs
+  ['f_owner','f_type','f_phone','f_address','f_minPrice','f_maxPrice','f_minPricePerMeter','f_maxPricePerMeter','f_minArea','f_maxArea','f_minYear','f_maxYear','f_bedrooms','f_floors','f_units'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  ['f_openKitchen','f_airConditioner','f_fireplace','f_parking','f_storage','f_balcony'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.checked = false;
+  });
+  render(); // full list
+});
+
+/* re-render after delete with filter applied if active */
+document.addEventListener('applyFiltersNow', applyFiltersNow);
+
+/* ===== deletion function used above ===== */
+function onDelete(id){
+  if(!confirm('آیا از حذف این ملک مطمئنی؟')) return;
+  properties = properties.filter(p => p.id !== id);
+  save(properties);
+  // reapply filters if visible otherwise render all
+  if(!filterPanel.classList.contains('hidden')) applyFiltersNow(); else render();
+}
+
+/* ===== open edit (used above) ===== */
+function openEdit(id) {
+  const prop = properties.find(p => p.id === id);
+  if(!prop) { alert('ملک پیدا نشد.'); return; }
+  editingId = id;
+  fillFormWith(prop);
+  addPanel.classList.remove('hidden');
+  addPanel.scrollIntoView({behavior:'smooth'});
+}
+
+/* ===== helpers used earlier but needed now (escapeHtml) ===== */
+function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* ===== initialize UI ===== */
+render();
+
+/* optional: auto-apply filters if any input changed (live filter) */
+[
+  'f_owner','f_type','f_phone','f_address','f_minPrice','f_maxPrice',
+  'f_minPricePerMeter','f_maxPricePerMeter','f_minArea','f_maxArea',
+  'f_minYear','f_maxYear','f_bedrooms','f_floors','f_units',
+  'f_openKitchen','f_airConditioner','f_fireplace','f_parking','f_storage','f_balcony'
+].forEach(id => {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input', () => {
+    // if filter panel visible, apply live
+    if(!filterPanel.classList.contains('hidden')) applyFiltersNow();
+  });
+  el.addEventListener('change', () => {
+    if(!filterPanel.classList.contains('hidden')) applyFiltersNow();
+  });
+});
+</script>
+</body>
+</html>
